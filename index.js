@@ -45,17 +45,34 @@ async function startServer() {
     next();
   });
 
-  // 错误处理中间件
-  app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(INTERNAL_SERVER_ERROR).json(createResponse(false, 'Internal Server Error'));
-  });
 
   // 公开的路由
   app.use('/public', publicRoutes);
   // 保护的路由
   app.use('/auth', authenticateToken, authRoutes);
+  
 
+  //未匹配的路由处理
+  app.use((req, res, next) => {
+    res.status(StatusCode.NOT_FOUND).json(ResponseBuilder.notFound('路由不存在'));
+  });
+
+
+  // 错误处理中间件
+  app.use((err, req, res, next) => {
+    console.error(err.stack); // 打印错误堆栈信息到控制台（仅限开发阶段）
+
+    // 设置响应状态码，如果错误对象中没有状态码，则默认使用 500
+    const statusCode = err.statusCode || 500;
+
+    // 返回 JSON 格式的错误信息
+    res.status(statusCode).json({
+      success: false,
+      message: err.message || 'Internal Server Error',
+      // 仅在开发环境中返回详细的错误堆栈信息
+      stack: process.env.NODE_ENV === 'development' ? err.stack : {}
+    });
+  });
 
   // 启动服务器并监听端口
   const PORT = process.env.PORT || 3000;
