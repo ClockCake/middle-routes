@@ -50,14 +50,14 @@ router.put('/profile', async (req, res) => {
 
     if (result.matchedCount === 0) {
       return res.status(StatusCode.NOT_FOUND)
-                .json(ResponseBuilder.error('用户不存在', 'USER_NOT_FOUND'));
+                .json(ResponseBuilder.error('用户不存在', StatusCode.NOT_FOUND));
     }
 
     res.json(ResponseBuilder.success({}, '用户信息更新成功'));
   } catch (error) {
     console.error('更新用户信息时发生错误:', error);
     res.status(StatusCode.INTERNAL_SERVER_ERROR)
-       .json(ResponseBuilder.error('服务器内部错误', 'INTERNAL_SERVER_ERROR'));
+       .json(ResponseBuilder.error('服务器内部错误', StatusCode.INTERNAL_SERVER_ERROR));
   }
 });
 
