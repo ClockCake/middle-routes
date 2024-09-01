@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { ResponseBuilder, StatusCode } = require('../utils/response');
 const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
+const { validationResult } = require('express-validator');
+const { loginValidator } = require('../middlewares/userValidator');
 
 // JWT 密钥，应该存储在环境变量中
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -17,20 +18,13 @@ function generateToken(user) {
 }
 
 
-router.post('/login',[
-    body('phone').isMobilePhone('zh-CN').withMessage('手机号格式不正确'),
-  ],
-  async (req, res) => {
+router.post('/login', loginValidator , async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(StatusCode.BAD_REQUEST)
+              .json(ResponseBuilder.badRequest(errors.array()[0].msg));
+  }
   const { phone, verificationCode } = req.body;
-
-   // 获取校验结果
-   const errors = validationResult(req);
-   if (!errors.isEmpty()) {
-     // 如果校验失败，返回 400 和错误信息
-     return res.status(StatusCode.BAD_REQUEST)
-                .json(ResponseBuilder.badRequest(errors.array()[0].msg));
-   }
-
   try {
     // 确保数据库连接存在
     if (!req.db) {

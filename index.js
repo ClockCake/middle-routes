@@ -3,7 +3,7 @@ const publicRoutes = require('./routes/login'); // 引入公开路由
 const authRoutes = require('./routes/user'); // 引入保护路由
 const { createResponse, ResponseBuilder, StatusCode } = require('./utils/response'); // 导入 StatusCode
 const { MongoClient } = require('mongodb'); // 引入 MongoDB 客户端
-const jwt = require('jsonwebtoken'); // 引入 JWT 模块
+const authenticateToken = require('./middlewares/auth'); // 引入 JWT 验证中间件
 const app = express(); // 创建 Express 应用实例
 require('dotenv').config(); // 引入 dotenv 模块，用于读取环境变量
 
@@ -25,44 +25,6 @@ async function connectToDatabase() {
     process.exit(1); // 连接失败时退出程序
   }
 }
-
-// 验证 JWT 令牌的中间件
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (token == null) {
-    return res.status(StatusCode.UNAUTHORIZED)
-              .json(ResponseBuilder.error('未提供认证令牌', StatusCode.UNAUTHORIZED));
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(StatusCode.FORBIDDEN)
-                .json(ResponseBuilder.error('无效的令牌', StatusCode.FORBIDDEN));
-    }
-
-    // 检查 token 是否快要过期（如果剩余有效期小于 3 天）
-    const tokenExp = user.exp;
-    const currentTime = Math.floor(Date.now() / 1000);
-    const timeUntilExpire = tokenExp - currentTime;
-    const threeDaysInSeconds = 3 * 24 * 60 * 60; // 3天的秒数
-    const twoWeeksInSeconds = 14 * 24 * 60 * 60; // 2周的秒数
-
-    if (timeUntilExpire < threeDaysInSeconds) {
-      // 重置 token 的有效期为2周
-      user.exp = currentTime + twoWeeksInSeconds;
-      const refreshedToken = jwt.sign(user, process.env.JWT_SECRET);
-
-      // 在响应头中设置刷新后的 token
-      res.setHeader('Authorization', 'Bearer ' + refreshedToken);
-    }
-
-    req.user = user;
-    next();
-  });
-}
-
 
 // 启动服务器的异步函数
 async function startServer() {
