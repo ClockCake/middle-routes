@@ -1,9 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const { ResponseBuilder, StatusCode } = require('../utils/response');
+const jwt = require('jsonwebtoken');
+
+// JWT 密钥，应该存储在环境变量中
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// 生成 JWT token 的函数
+function generateToken(user) {
+  return jwt.sign(
+    { userId: user._id, phone: user.phone },
+    JWT_SECRET,
+    { expiresIn: '14d' } // token 有效期为 14 天
+  );
+}
 
 
-  
 router.post('/login', async (req, res) => {
   const { phone, verificationCode } = req.body;
 
@@ -44,11 +56,17 @@ router.post('/login', async (req, res) => {
         throw new Error('Failed to retrieve newly created user');
       }
     }
+    const token = generateToken(user);
 
-    // 选项1：排除 _id 字段
+    // 排除 _id 字段
     const { _id, ...userWithoutId } = user;
+    // 生成 JWT token,自定义返回结构体
+    const responseData = {
+      ...userWithoutId,
+      token,
+    };
     // 返回用户信息
-    res.json(ResponseBuilder.success(userWithoutId, '登录成功'));
+    res.json(ResponseBuilder.success(responseData, '登录成功'));
   } catch (error) {
     console.error('登录过程中发生错误:', error);
     res.status(StatusCode.INTERNAL_SERVER_ERROR)
