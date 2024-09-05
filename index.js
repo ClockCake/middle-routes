@@ -1,5 +1,6 @@
 const express = require('express'); // 引入 Express 框架
 const publicRoutes = require('./routes/login'); // 引入公开路由
+const mailgunRoutes = require('./middlewares/mailgun'); // 引入邮件路由
 const authRoutes = require('./routes/user'); // 引入保护路由
 const { createResponse, ResponseBuilder, StatusCode } = require('./utils/response'); // 导入 StatusCode
 const { MongoClient } = require('mongodb'); // 引入 MongoDB 客户端
@@ -48,6 +49,7 @@ async function startServer() {
 
   // 公开的路由
   app.use('/public', publicRoutes);
+  app.use('/mailgun', mailgunRoutes);
   // 保护的路由
   app.use('/auth', authenticateToken, authRoutes);
   
